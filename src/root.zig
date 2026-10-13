@@ -14,19 +14,7 @@
 
 const std = @import("std");
 
-/// Error set returned from expectation functions.
-pub const Error = error{
-    /// Catch-all error variant indicating an expectation function failed its
-    /// assertion.
-    ExpectationNotMet,
-};
-
-/// This function is intended to be used only in tests.
-pub fn expectThat(actual: anytype) Expectations(@TypeOf(actual)) {
-    return .{ .actual = actual };
-}
-
-test expectThat {
+test {
     {
         const actual: ?u0 = null;
         try expectThat(actual).isNull();
@@ -43,6 +31,25 @@ test expectThat {
         //     expectThat(actual).isNull(),
         // );
     }
+}
+
+/// Error set returned from expectation functions.
+pub const Error = error{
+    /// Catch-all error variant indicating an expectation function failed its
+    /// assertion.
+    ExpectationNotMet,
+};
+
+/// This function is intended to be used only in tests.
+pub fn expectThat(actual: anytype) Expectations(@TypeOf(actual)) {
+    return .{ .actual = actual };
+}
+
+test expectThat {
+    // const actual = null;
+    const namespace = @TypeOf(expectThat(null));
+    try std.testing.expect(@hasDecl(namespace, "isNull"));
+    try std.testing.expect(!@hasDecl(namespace, "isNotNull"));
 }
 
 fn Expectations(comptime T: type) type {
