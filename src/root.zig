@@ -14,7 +14,7 @@
 
 const std = @import("std");
 
-test {
+test "API usage" {
     {
         const actual: ?u0 = null;
         try expectThat(actual).isNull();
@@ -31,6 +31,10 @@ test {
         //     expectThat(actual).isNull(),
         // );
     }
+    {
+        const actual: u1 = 1;
+        try expectThat(actual).isGreaterThan(0);
+    }
 }
 
 /// Error set returned from expectation functions.
@@ -46,60 +50,47 @@ pub fn expectThat(actual: anytype) Expectations(@TypeOf(actual)) {
 }
 
 test expectThat {
-    // const actual = null;
-    const namespace = @TypeOf(expectThat(null));
-    try std.testing.expect(@hasDecl(namespace, "isNull"));
-    try std.testing.expect(!@hasDecl(namespace, "isNotNull"));
+    {
+        const namespace = @TypeOf(expectThat(null));
+        try std.testing.expect(@hasDecl(namespace, "isNull"));
+        try std.testing.expect(!@hasDecl(namespace, "isNotNull"));
+    }
+    {
+        const namespace = @TypeOf(expectThat(@as(i32, 47)));
+        try std.testing.expect(!@hasDecl(namespace, "isNull"));
+        try std.testing.expect(!@hasDecl(namespace, "isNotNull"));
+        try std.testing.expect(@hasDecl(namespace, "isGreaterThan"));
+    }
 }
 
 fn Expectations(comptime T: type) type {
     const type_info = @typeInfo(T);
     return switch (type_info) {
+        .int => Int(T),
         .optional => Optional(T),
         .null => Null(T),
         else => struct {},
     };
 }
 
-fn Null(comptime T: type) type {
+fn Int(comptime T: type) type {
     return struct {
         const Self = @This();
 
         actual: T,
-        __null: NullExpectations(Self, "__null") = .{},
 
-        pub fn isNull(self: Self) Error!void {
-            try self.__null.isNull();
-        }
-    };
-}
-
-fn NullExpectations(comptime T: type, comptime field_name: []const u8) type {
-    return struct {
-        const Self = @This();
-
-        pub fn isNull(self: *const Self) Error!void {
-            const parent: *const T = @alignCast(@fieldParentPtr(field_name, self));
-            if (std.meta.eql(parent.actual, null))
+        pub fn isGreaterThan(self: Self, expected: T) Error!void {
+            if (std.math.compare(self.actual, .gt, expected))
                 return;
             std.testing.failPrint(
                 \\expected:
-                \\    > null
-                \\actual:
-                \\    {any}
+                \\    > {any} is not greater than {any}
                 \\
                 \\
-            , .{parent.actual});
+            , .{self.actual, expected});
             return error.ExpectationNotMet;
         }
     };
-}
-
-test NullExpectations {
-    const T = NullExpectations(struct {}, "__null");
-    try std.testing.expect(@hasDecl(T, "isNull"));
-    try std.testing.expect(!@hasDecl(T, "isNotNull"));
-    try std.testing.expect(!@hasDecl(T, "isEqualTo"));
 }
 
 fn Optional(comptime T: type) type {
@@ -145,5 +136,46 @@ test OptionalExpectations {
     const T = OptionalExpectations(struct {}, "__optional");
     try std.testing.expect(!@hasDecl(T, "isNull"));
     try std.testing.expect(@hasDecl(T, "isNotNull"));
+    try std.testing.expect(!@hasDecl(T, "isEqualTo"));
+}
+
+fn Null(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        actual: T,
+        __null: NullExpectations(Self, "__null") = .{},
+
+        pub fn isNull(self: Self) Error!void {
+            try self.__null.isNull();
+        }
+    };
+}
+
+fn NullExpectations(comptime T: type, comptime field_name: []const u8) type {
+    return struct {
+        const Self = @This();
+
+        pub fn isNull(self: *const Self) Error!void {
+            const parent: *const T = @alignCast(@fieldParentPtr(field_name, self));
+            if (std.meta.eql(parent.actual, null))
+                return;
+            std.testing.failPrint(
+                \\expected:
+                \\    > null
+                \\actual:
+                \\    {any}
+                \\
+                \\
+            , .{parent.actual});
+            return error.ExpectationNotMet;
+        }
+    };
+}
+
+test NullExpectations {
+    const T = NullExpectations(struct {}, "__null");
+    try std.testing.expect(@hasDecl(T, "isNull"));
+    try std.testing.expect(!@hasDecl(T, "isNotNull"));
     try std.testing.expect(!@hasDecl(T, "isEqualTo"));
 }
