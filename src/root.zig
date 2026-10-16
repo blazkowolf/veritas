@@ -77,15 +77,27 @@ fn Int(comptime TActual: type) type {
         const Self = @This();
 
         actual: TActual,
-        __int: IntExpectations(Self, TActual, "__int") = .{},
+        __ordered: OrderedExpectations(Self, TActual, "__ordered") = .{},
 
         pub fn isGreaterThan(self: Self, expected: TActual) Error!void {
-            try self.__int.isGreaterThan(expected);
+            try self.__ordered.isGreaterThan(expected);
+        }
+
+        pub fn isGreaterThanOrEqualTo(self: Self, expected: TActual) Error!void {
+            try self.__ordered.isGreaterThanOrEqualTo(expected);
+        }
+
+        pub fn isLessThan(self: Self, expected: TActual) Error!void {
+            try self.__ordered.isLessThan(expected);
+        }
+
+        pub fn isLessThanOrEqualTo(self: Self, expected: TActual) Error!void {
+            try self.__ordered.isLessThanOrEqualTo(expected);
         }
     };
 }
 
-fn IntExpectations(
+fn OrderedExpectations(
     comptime TParent: type,
     comptime TExpected: type,
     comptime field_name: []const u8,
@@ -106,6 +118,63 @@ fn IntExpectations(
             std.testing.failPrint(
                 \\expected:
                 \\    > {any} is not greater than {any}
+                \\
+                \\
+            , .{ parent.actual, expected });
+            return error.ExpectationNotMet;
+        }
+
+        pub fn isLessThan(
+            self: *const Self,
+            expected: TExpected,
+        ) Error!void {
+            const parent: *const TParent = @alignCast(@fieldParentPtr(
+                field_name,
+                self,
+            ));
+            if (std.math.compare(parent.actual, .lt, expected))
+                return;
+            std.testing.failPrint(
+                \\expected:
+                \\    > {any} is not less than {any}
+                \\
+                \\
+            , .{ parent.actual, expected });
+            return error.ExpectationNotMet;
+        }
+
+        pub fn isGreaterThanOrEqualTo(
+            self: *const Self,
+            expected: TExpected,
+        ) Error!void {
+            const parent: *const TParent = @alignCast(@fieldParentPtr(
+                field_name,
+                self,
+            ));
+            if (std.math.compare(parent.actual, .gte, expected))
+                return;
+            std.testing.failPrint(
+                \\expected:
+                \\    > {any} is not greater than or equal to {any}
+                \\
+                \\
+            , .{ parent.actual, expected });
+            return error.ExpectationNotMet;
+        }
+
+        pub fn isLessThanOrEqualTo(
+            self: *const Self,
+            expected: TExpected,
+        ) Error!void {
+            const parent: *const TParent = @alignCast(@fieldParentPtr(
+                field_name,
+                self,
+            ));
+            if (std.math.compare(parent.actual, .lte, expected))
+                return;
+            std.testing.failPrint(
+                \\expected:
+                \\    > {any} is not less than or equal to {any}
                 \\
                 \\
             , .{ parent.actual, expected });
