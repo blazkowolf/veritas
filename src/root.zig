@@ -259,10 +259,7 @@ fn NullExpectations(
         const Self = @This();
 
         pub fn isNull(self: *const Self) Error!void {
-            const parent: *const TParent = @alignCast(@fieldParentPtr(
-                field_name,
-                self,
-            ));
+            const parent = getParentPtr(TParent, Self, field_name, self);
             if (std.meta.eql(parent.actual, null))
                 return;
             std.testing.failPrint(
@@ -283,4 +280,13 @@ test NullExpectations {
     try std.testing.expect(@hasDecl(T, "isNull"));
     try std.testing.expect(!@hasDecl(T, "isNotNull"));
     try std.testing.expect(!@hasDecl(T, "isEqualTo"));
+}
+
+fn getParentPtr(
+    comptime TParent: type,
+    comptime T: type,
+    comptime field_name: []const u8,
+    field_ptr: *const T,
+) *const TParent {
+    return @alignCast(@fieldParentPtr(field_name, field_ptr));
 }
