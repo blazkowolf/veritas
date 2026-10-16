@@ -38,10 +38,13 @@ test expectThat {
     {
         const actual: u1 = 1;
         try expectThat(actual).isGreaterThan(0);
+        // try expectThat(actual).isLessThan(2); // is compile error because "2" cannot fit inside a `u1`
+        try expectThat(actual).isGreaterThanOrEqualTo(1);
     }
     {
-        const actual: f32 = 1;
-        try expectThat(actual).isGreaterThan(0);
+        const actual: i32 = 1;
+        try expectThat(actual).isLessThan(100);
+        try expectThat(actual).isLessThanOrEqualTo(1);
     }
 }
 
